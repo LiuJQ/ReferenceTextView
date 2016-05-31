@@ -134,6 +134,11 @@ public class ReferenceTextView extends TextView {
         setText();
     }
 
+    public void setReferenceContent(String referenceContent) {
+        this.referenceContent = referenceContent;
+        setText();
+    }
+
     public void setColorClickableText(int colorClickableText) {
         this.colorClickableText = colorClickableText;
     }
