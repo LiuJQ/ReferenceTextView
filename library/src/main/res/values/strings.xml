@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">library</string>
+    <string name="read_more">show more</string>
+    <string name="read_less">show less</string>
+    <string name="reference">Reference&#064;Content</string>
+    <string name="blank_space">&#160;&#160;</string>
+</resources>
