@@ -1,5 +1,5 @@
 # ReferenceTextView
-This is a custom TextView allow developers to realize a reply content with referenced User infomation, which is supported collapse and expand function.
+This is a custom TextView allow developers to realize a reply content with referenced User information, which is supported collapse/expand function.
 
 ## How does it look like ?
 ![](https://github.com/LiuJQ/ReferenceTextView/blob/master/screenshot.png)
@@ -22,6 +22,13 @@ reference the [ReferenceTextView](https://github.com/LiuJQ/ReferenceTextView) li
     app:colorClickableText="@color/accent"
     app:referenceColor="@color/referenceColor"/>
 ```
+You can set the reference User information dynamically, like this:
+```java
+ReferenceTextView dynamicSetContent = (ReferenceTextView) findViewById(R.id.dynamic_set_content);
+dynamicSetContent.setReferenceContent("@DynamicAddUser");
+```
+now you can see your new reference content:
+![](https://github.com/LiuJQ/ReferenceTextView/blob/master/screenshot_dynamic.png)
 
 ## Thanks
 * [ReadMoreTextView](https://github.com/borjabravo10/ReadMoreTextView)
