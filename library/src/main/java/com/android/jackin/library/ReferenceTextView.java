@@ -78,11 +78,20 @@ public class ReferenceTextView extends TextView {
     }
 
     private CharSequence getTrimmedText(CharSequence text) {
-        if (text != null && text.length() > trimLength) {
-            if (readMore) {
-                return updateCollapsedText();
+        if (text != null) {
+            if (text.length() > trimLength) {
+                if (readMore) {
+                    return updateCollapsedText();
+                } else {
+                    return updateExpandedText();
+                }
             } else {
-                return updateExpandedText();
+                SpannableString reference = getReferenceContent();
+                if (reference != null) {
+                    SpannableStringBuilder s = new SpannableStringBuilder();
+                    s.append(reference).append(getResources().getString(R.string.blank_space)).append(text);
+                    return s;
+                }
             }
         }
         return text;
@@ -113,7 +122,6 @@ public class ReferenceTextView extends TextView {
             s.append(reference).append(getResources().getString(R.string.blank_space)).append(text);
             return s;
         }
-
         return text;
     }
 
