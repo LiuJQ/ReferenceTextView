@@ -30,6 +30,20 @@ dynamicSetContent.setReferenceContent("@DynamicAddUser");
 now you can see your new reference content:
 ![](https://github.com/LiuJQ/ReferenceTextView/blob/master/screenshot_dynamic.png)
 
+**new feature**
+Good news, we can set the trim mode(trim by lines or length).
+```xml
+<com.android.jackin.library.ReferenceTextView
+    android:id="@+id/dynamic_set_content"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="20dp"
+    android:text="@string/test_long_content"
+    app:colorClickableText="@color/accent"
+    app:trimMode="trimModeLine"
+    app:trimLines="3"/>
+```
+
 ## Thanks
 * [ReadMoreTextView](https://github.com/borjabravo10/ReadMoreTextView)
 * [Android Studio](https://developer.android.com/studio/index.html)
