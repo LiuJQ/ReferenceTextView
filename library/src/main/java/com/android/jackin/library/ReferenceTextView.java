@@ -3,6 +3,7 @@ package com.android.jackin.library;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
+import android.os.Build;
 import android.support.v4.content.ContextCompat;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -14,6 +15,7 @@ import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.TextView;
 
 /**
@@ -21,7 +23,10 @@ import android.widget.TextView;
  */
 public class ReferenceTextView extends TextView {
 
+    private static final int TRIM_MODE_LINES = 0;
+    private static final int TRIM_MODE_LENGTH = 1;
     private static final int DEFAULT_TRIM_LENGTH = 240;
+    private static final int DEFAULT_TRIM_LINES = 2;
     private static final boolean DEFAULT_SHOW_TRIM_EXPANDED_TEXT = true;
     private static final String ELLIPSIZE = "... ";
 
@@ -37,6 +42,9 @@ public class ReferenceTextView extends TextView {
 
     private int colorReference;
     private String referenceContent;
+    private int trimMode;
+    private int lineEndIndex;
+    private int trimLines;
 
     public ReferenceTextView(Context context) {
         this(context, null);
@@ -50,13 +58,16 @@ public class ReferenceTextView extends TextView {
         int resourceIdTrimExpandedText = typedArray.getResourceId(R.styleable.ReferenceTextView_trimExpandedText, R.string.read_less);
         this.trimCollapsedText = getResources().getString(resourceIdTrimCollapsedText);
         this.trimExpandedText = getResources().getString(resourceIdTrimExpandedText);
+        this.trimLines = typedArray.getInt(R.styleable.ReferenceTextView_trimLines, DEFAULT_TRIM_LINES);
         this.colorClickableText = typedArray.getColor(R.styleable.ReferenceTextView_colorClickableText, ContextCompat.getColor(context, R.color.accent));
         this.showTrimExpandedText = typedArray.getBoolean(R.styleable.ReferenceTextView_showTrimExpandedText, DEFAULT_SHOW_TRIM_EXPANDED_TEXT);
         this.colorReference = typedArray.getColor(R.styleable.ReferenceTextView_referenceColor, ContextCompat.getColor(context, R.color.colorPrimary));
         int resourceIdReferenceText = typedArray.getResourceId(R.styleable.ReferenceTextView_referenceContent, R.string.reference);
         this.referenceContent = getResources().getString(resourceIdReferenceText);
+        this.trimMode = typedArray.getInt(R.styleable.ReferenceTextView_trimMode, TRIM_MODE_LINES);
         typedArray.recycle();
         viewMoreSpan = new ReadMoreClickableSpan();
+        onGlobalLayoutLineEndIndex();
         setText();
     }
 
@@ -78,19 +89,39 @@ public class ReferenceTextView extends TextView {
     }
 
     private CharSequence getTrimmedText(CharSequence text) {
-        if (text != null) {
-            if (text.length() > trimLength) {
-                if (readMore) {
-                    return updateCollapsedText();
+        if (trimMode == TRIM_MODE_LENGTH) {
+            if (text != null) {
+                if (text.length() > trimLength) {
+                    if (readMore) {
+                        return updateCollapsedText();
+                    } else {
+                        return updateExpandedText();
+                    }
                 } else {
-                    return updateExpandedText();
+                    SpannableString reference = getReferenceContent();
+                    if (reference != null) {
+                        SpannableStringBuilder s = new SpannableStringBuilder();
+                        s.append(reference).append(getResources().getString(R.string.blank_space)).append(text);
+                        return s;
+                    }
                 }
-            } else {
-                SpannableString reference = getReferenceContent();
-                if (reference != null) {
-                    SpannableStringBuilder s = new SpannableStringBuilder();
-                    s.append(reference).append(getResources().getString(R.string.blank_space)).append(text);
-                    return s;
+            }
+        }
+        if (trimMode == TRIM_MODE_LINES) {
+            if (text != null) {
+                if (lineEndIndex > 0) {
+                    if (readMore) {
+                        return updateCollapsedText();
+                    } else {
+                        return updateExpandedText();
+                    }
+                } else {
+                    SpannableString reference = getReferenceContent();
+                    if (reference != null) {
+                        SpannableStringBuilder s = new SpannableStringBuilder();
+                        s.append(reference).append(getResources().getString(R.string.blank_space)).append(text);
+                        return s;
+                    }
                 }
             }
         }
@@ -98,12 +129,30 @@ public class ReferenceTextView extends TextView {
     }
 
     private CharSequence updateCollapsedText() {
+        int trimEndIndex = text.length();
+        switch (trimMode) {
+            case TRIM_MODE_LINES:
+                trimEndIndex = lineEndIndex - (ELLIPSIZE.length() + trimCollapsedText.length() + 1);
+                if (trimEndIndex < 0) {
+                    trimEndIndex = trimLength + 1;
+                }
+                break;
+            case TRIM_MODE_LENGTH:
+                trimEndIndex = trimLength + 1;
+                break;
+        }
         SpannableString reference = getReferenceContent();
         SpannableStringBuilder s = new SpannableStringBuilder();
         if (reference != null) {
             s.append(reference).append(getResources().getString(R.string.blank_space));
+            // refresh trimEndIndex
+            // trimEndIndex minus referenceLength
+            int referenceLength = reference.length();
+            if (trimEndIndex > referenceLength) {
+                trimEndIndex -= referenceLength;
+            }
         }
-        s.append(text.subSequence(0, trimLength + 1)).append(ELLIPSIZE).append(trimCollapsedText);
+        s.append(text.subSequence(0, trimEndIndex)).append(ELLIPSIZE).append(trimCollapsedText);
         return addClickableSpan(s, trimCollapsedText);
     }
 
@@ -159,6 +208,14 @@ public class ReferenceTextView extends TextView {
         this.trimExpandedText = trimExpandedText;
     }
 
+    public void setTrimMode(int trimMode) {
+        this.trimMode = trimMode;
+    }
+
+    public void setTrimLines(int trimLines) {
+        this.trimLines = trimLines;
+    }
+
     private class ReadMoreClickableSpan extends ClickableSpan {
         @Override
         public void onClick(View widget) {
@@ -171,4 +228,37 @@ public class ReferenceTextView extends TextView {
             ds.setColor(colorClickableText);
         }
     }
+
+    private void onGlobalLayoutLineEndIndex() {
+        if (trimMode == TRIM_MODE_LINES) {
+            getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    ViewTreeObserver obs = getViewTreeObserver();
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                        obs.removeOnGlobalLayoutListener(this);
+                    } else {
+                        obs.removeGlobalOnLayoutListener(this);
+                    }
+                    refreshLineEndIndex();
+                    setText();
+                }
+            });
+        }
+    }
+
+    private void refreshLineEndIndex() {
+        try {
+            if (trimLines == 0) {
+                lineEndIndex = getLayout().getLineEnd(0);
+            } else if (trimLines > 0 && getLineCount() >= trimLines) {
+                lineEndIndex = getLayout().getLineEnd(trimLines - 1);
+            } else {
+                lineEndIndex = getLayout().getLineEnd(getLayout().getLineCount() - 1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }
